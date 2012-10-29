@@ -1,8 +1,8 @@
+var markerArray = new Array();
+var pathArray = new Array();
+//var LMOArray = new Array();
 
 function initialize() {
-  var markerArray = new Array();
-  var pathArray = new Array();
-  var LMOArray = new Array();
 
   var mapOptions = {
     center : new google.maps.LatLng(41.870232, -87.618806),
@@ -10,7 +10,6 @@ function initialize() {
     mapTypeId : google.maps.MapTypeId.ROADMAP
   };
   var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
-  alert(JSON.stringify(markerArray));
   
 
   var markerPath = new google.maps.Polyline({
@@ -20,10 +19,7 @@ function initialize() {
     strokeWeight : 2
   });
 
-
-
   $(function() {
-
 
     Parse.$ = jQuery;
 
@@ -51,6 +47,8 @@ function initialize() {
      ]
      }
      */
+
+    var collection;
 
     var LocationMetadataObject = Parse.Object.extend("LocationMetadataObject", {
       defaults : {
@@ -81,8 +79,13 @@ function initialize() {
       },
 
       input : function(e) {
-        alert('input');
-        alert('you called input');
+        ClearOverlay();
+        pathArray.length = null;
+        markerArray.length = null;
+        
+        markerPath.setMap(map);
+        //alert('input');
+        //alert('you called input');
         var self = this;
         var latitude = this.$("#input-latitude").val();
         var longitude = this.$("#input-longitude").val();
@@ -112,7 +115,8 @@ function initialize() {
         locationMetadataObject.set("location", GeoPointObject);
         locationMetadataObject.set("data", data);
         locationMetadataObject.set("datetime", datetime);
-        
+        locationMetadataObject.set("user", user);
+
         var query = new Parse.Query(UserMetadataObject);
 
         query.equalTo("user", user);
@@ -129,16 +133,16 @@ function initialize() {
             results.get("locations").push(locationMetadataObject);
             results.save();
             var markerPoint = new google.maps.LatLng(latitude, longitude);
-            
-            pathArray.push(markerPoint);
-            markerPath.setPath(pathArray);
+
+            //pathArray.push(markerPoint);
+            //markerPath.setPath(pathArray);
 
             //alert("1");
-            var marker = new google.maps.Marker({
+           /* var marker = new google.maps.Marker({
               position : markerPoint,
               map : map,
             });
-            markerArray.push(marker);
+            markerArray.push(marker);  
             //alert("2");
             var infoWindowOptions = {
               content : data
@@ -147,15 +151,48 @@ function initialize() {
             var infoWindow = new google.maps.InfoWindow(infoWindowOptions);
             google.maps.event.addListener(marker, 'click', function(e) {
               infoWindow.open(map, marker);
-            });
+            });  */
             //alert("4");
-            //DrawPath();
+            collection.fetch({
+              success : function(collection) {
+                collection.each(function(object) {
+                  data = object.get("data");
+                  latitude = object.get("location")["latitude"];
+                  longitude = object.get("location")["longitude"];
+                  datetime = object.get("datetime");
+                  objectId = object.id;
+                  var markerPoint = new google.maps.LatLng(latitude, longitude);
+                  pathArray.push(markerPoint);
+                  markerPath.setPath(pathArray);
+
+                  var marker = new google.maps.Marker({
+                    position : markerPoint,
+                    map : map,
+                  });
+                  marker.objectId = objectId;
+                  var infoWindowOptions = {
+                    content : data
+                  };
+                  //alert("3");
+                  var infoWindow = new google.maps.InfoWindow(infoWindowOptions);
+                  google.maps.event.addListener(marker, 'click', function(e) {
+                    infoWindow.open(map, marker);
+                  });
+                  markerArray.push(marker);
+                  map.center = markerArray[markerArray.length - 1].position;
+                });
+
+              },
+              error : function(collection, error) {
+                // Collection could not be retrieved.
+              }
+            });
           },
           error : function(error) {
             alert("Error: " + error.code + " " + error.message);
           }
         });
-         
+
         //alert("End Input Function");
         return false;
       },
@@ -165,9 +202,9 @@ function initialize() {
         Parse.User.logOut();
         new LogInView();
         this.undelegateEvents();
-        alert('logOut');
+        //alert('logOut');
         delete this;
-        
+
         // Clear Map on logout, and reset path and marker arrays
         ClearOverlay();
         markerArray.length = 0;
@@ -181,7 +218,7 @@ function initialize() {
       }
     });
 
-    var LogInView = Parse.View.extend({  // This is Initial view, with LogIn and SignUp functions
+    var LogInView = Parse.View.extend({// This is Initial view, with LogIn and SignUp functions
       events : {
         "submit form.login-form" : "logIn",
         "submit form.signup-form" : "signUp"
@@ -195,9 +232,9 @@ function initialize() {
       },
 
       logIn : function(e) {
-        markerPath.setMap(map); // Reset the path object to display on the map on every LogIn event
-        alert('login');
-        alert(JSON.stringify(markerArray));
+        markerPath.setMap(map);
+        // Reset the path object to display on the map on every LogIn event
+        //alert('login');
         var self = this;
         var username = this.$("#login-username").val();
         var password = this.$("#login-password").val();
@@ -205,50 +242,110 @@ function initialize() {
         Parse.User.logIn(username, password, {
           success : function(user) {
 
-            var query = new Parse.Query(UserMetadataObject);
-            query.equalTo("user", user);
-            query.first({
-              success : function(results) {
+            // Store marker objects in a Parse.com Collection
+            var LMOCollection = Parse.Collection.extend({
+              model : LocationMetadataObject,
+              query : (new Parse.Query(LocationMetadataObject)).equalTo("user", user)
+            });
 
-                locationsLen = results.get("locations").length;
-                alert('locations length:' + String(locationsLen));
-                
-                // iterate through existing markers to display on map
-                for (var x = 0; x < locationsLen; x++) {
-                  var query1 = new Parse.Query(LocationMetadataObject);
-                  query1.equalTo("objectId", results.get("locations")[x].id);
-                  query1.first({
-                    success : function(results1) {
-                      data = results1.get("data");
-                      latitude = results1.get('location')['latitude'];
-                      longitude = results1.get('location')['longitude'];
-                      var markerPoint = new google.maps.LatLng(latitude, longitude);
-                      pathArray.push(markerPoint);
-                      markerPath.setPath(pathArray);
-                      var marker = new google.maps.Marker({
-                        position : new google.maps.LatLng(latitude, longitude),
-                        map : map,
-                      });
-                      markerArray.push(marker);
-                      //alert("2");
-                      var infoWindowOptions = {
-                        content : data
-                      };
-                      //alert("3");
-                      var infoWindow = new google.maps.InfoWindow(infoWindowOptions);
-                      google.maps.event.addListener(marker, 'click', function(e) {
-                        infoWindow.open(map, marker);
-                      });
+            collection = new LMOCollection();
+            collection.comparator = function(object) {// Sort collection by datetime
+              return object.get("datetime");
+            }
+            collection.fetch({
+              success : function(collection) {
+                collection.each(function(object) {
+                  data = object.get("data");
+                  latitude = object.get("location")["latitude"];
+                  longitude = object.get("location")["longitude"];
+                  datetime = object.get("datetime");
+                  objectId = object.id;
+                  var markerPoint = new google.maps.LatLng(latitude, longitude);
+                  pathArray.push(markerPoint);
+                  markerPath.setPath(pathArray);
 
-                    }
-                  })
-                }
+                  var marker = new google.maps.Marker({
+                    position : markerPoint,
+                    map : map,
+                  });
+                  marker.objectId = objectId;
+                  var infoWindowOptions = {
+                    content : data
+                  };
+                  //alert("3");
+                  var infoWindow = new google.maps.InfoWindow(infoWindowOptions);
+                  google.maps.event.addListener(marker, 'click', function(e) {
+                    infoWindow.open(map, marker);
+                  });
+                  markerArray.push(marker);
+                  map.center = markerArray[markerArray.length - 1].position;
+                });
 
               },
-              error : function(error) {
-                alert("Error: " + error.code + " " + error.message);
+              error : function(collection, error) {
+                // Collection could not be retrieved.
               }
             });
+
+            /* Dated version of recalling points
+
+             var query = new Parse.Query(UserMetadataObject);
+             query.equalTo("user", user);
+             query.first({
+             success : function(results) {
+
+             locationsLen = results.get("locations").length;
+             alert('locations length:' + String(locationsLen));
+
+             // iterate through existing markers to display on map
+             for (var x = 0; x < locationsLen; x++) {
+             var query1 = new Parse.Query(LocationMetadataObject);
+             query1.equalTo("objectId", results.get("locations")[x].id);
+             query1.first({
+             success : function(results1) {
+             data = results1.get("data");
+             latitude = results1.get('location')['latitude'];
+             longitude = results1.get('location')['longitude'];
+             datetime = results1.get('datetime');
+             var markerPoint = new google.maps.LatLng(latitude, longitude);
+             pathArray.push(markerPoint);
+             markerPath.setPath(pathArray);
+
+             /*
+             var marker = new google.maps.Marker({
+             position : new google.maps.LatLng(latitude, longitude),
+             map : map,
+             });
+             markerArray.push(marker);
+
+             var infoWindowOptions = {
+             content : data
+             };
+
+             var infoWindow = new google.maps.InfoWindow(infoWindowOptions);
+             google.maps.event.addListener(marker, 'click', function(e) {
+             infoWindow.open(map, marker);
+             });
+
+             // Need to pull LocationMetadataObjects into array before drawing path to avoid asynchronous loading
+             var LMO = new Object();
+             alert('object created');
+             LMO.data = data;
+             LMO.position = new google.map.LatLng(latitude, longitude);
+             LMO.datetime = datetime;
+             alert('object fields initialized');
+             alert(JSON.stringify(LMO));
+             LMOArray.push(LMO);
+
+             }
+             })
+             }
+
+             },
+             error : function(error) {
+             alert("Error: " + error.code + " " + error.message);
+             }
+             });*/
 
             new InputView();
             self.undelegateEvents();
@@ -266,8 +363,8 @@ function initialize() {
       },
 
       signUp : function(e) {
-        alert('yup');
-        alert(JSON.stringify(markerArray));
+        
+        
         var self = this;
         var username = this.$("#signup-username").val();
         var password = this.$("#signup-password").val();
@@ -330,24 +427,14 @@ function initialize() {
 
     var App = new AppView;
 
-
   });
-function DrawPath(){
-  alert('Draw Path');
-  alert('Array: ' + pathArray.join('\n'));
 
-  markerPath.setMap(map);
-
-}
-
-function ClearOverlay(){ // Iterates through markerArray and clears markers off map. Also removes path.
-  alert('ClearOverLay');
-  for (i=0; i<markerArray.length; i++) {
-    markerArray[i].setMap(null);  
+  function ClearOverlay() {// Iterates through markerArray and clears markers off map. Also removes path.
+    //alert('ClearOverLay');
+    for ( i = 0; i < markerArray.length; i++) {
+      markerArray[i].setMap(null);
+    }
+    markerPath.setMap(null);
   }
-  markerPath.setMap(null);
-}
 
 }
-
-
