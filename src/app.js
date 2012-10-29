@@ -2,6 +2,7 @@
 function initialize() {
   var markerArray = new Array();
   var pathArray = new Array();
+  var LMOArray = new Array();
 
   var mapOptions = {
     center : new google.maps.LatLng(41.870232, -87.618806),
@@ -19,7 +20,6 @@ function initialize() {
     strokeWeight : 2
   });
 
-  markerPath.setMap(map);
 
 
   $(function() {
@@ -112,7 +112,7 @@ function initialize() {
         locationMetadataObject.set("location", GeoPointObject);
         locationMetadataObject.set("data", data);
         locationMetadataObject.set("datetime", datetime);
-
+        
         var query = new Parse.Query(UserMetadataObject);
 
         query.equalTo("user", user);
@@ -170,8 +170,8 @@ function initialize() {
         
         // Clear Map on logout, and reset path and marker arrays
         ClearOverlay();
-        markerArray.length = 0
-        pathArray.length = 0
+        markerArray.length = 0;
+        pathArray.length = 0;
       },
 
       render : function() {
@@ -181,7 +181,7 @@ function initialize() {
       }
     });
 
-    var LogInView = Parse.View.extend({
+    var LogInView = Parse.View.extend({  // This is Initial view, with LogIn and SignUp functions
       events : {
         "submit form.login-form" : "logIn",
         "submit form.signup-form" : "signUp"
@@ -195,6 +195,7 @@ function initialize() {
       },
 
       logIn : function(e) {
+        markerPath.setMap(map); // Reset the path object to display on the map on every LogIn event
         alert('login');
         alert(JSON.stringify(markerArray));
         var self = this;
@@ -211,6 +212,8 @@ function initialize() {
 
                 locationsLen = results.get("locations").length;
                 alert('locations length:' + String(locationsLen));
+                
+                // iterate through existing markers to display on map
                 for (var x = 0; x < locationsLen; x++) {
                   var query1 = new Parse.Query(LocationMetadataObject);
                   query1.equalTo("objectId", results.get("locations")[x].id);
@@ -337,12 +340,12 @@ function DrawPath(){
 
 }
 
-function ClearOverlay(){ // Iterates through markerArray and clears them.
+function ClearOverlay(){ // Iterates through markerArray and clears markers off map. Also removes path.
   alert('ClearOverLay');
-    for (i=0; i<markerArray.length; i++) {
-    markerArray[i].setMap(null);
-    markerPath.setMap(null);
+  for (i=0; i<markerArray.length; i++) {
+    markerArray[i].setMap(null);  
   }
+  markerPath.setMap(null);
 }
 
 }
