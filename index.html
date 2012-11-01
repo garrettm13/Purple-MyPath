@@ -2,7 +2,7 @@
 <head>
   <meta charset="utf-8">
 
-  <title>MyPath</title>
+  <title>Purple App</title>
   <meta name="description" content="Purple App">
   <meta name="viewport" content="width=device-width">
   
@@ -35,7 +35,7 @@
   
   <div id="purpleapp">
     <div class="title">
-      <h3>MyPath</h3>
+      <h1>Purple</h1>
       <!--<input type="text" id="datepicker" placeholder="Date" />-->
     </div>
     <div class="content">
@@ -51,8 +51,16 @@
   </div>
   <div class="input">
     <form class="input-form">
-      <h5>Location Input</h5>
+      <h2>Location Input</h2>
       <div class="error" style="display:none"></div>
+      Address: <input type="text" id="input-address" placeholder="Enter address" />
+      <input type="button" 
+        onclick="codeAddress()" 
+        id="inputButtonGeocode"
+        style="width:150px" 
+        title="Click for coordinates" 
+        value="Click for coordinates"
+      />
       <input type="number" id="input-latitude" placeholder="latitude" />
       <input type="number" id="input-longitude" placeholder="longitude" />
       <input type="text" id="input-data" placeholder="Diary Text" />
@@ -67,7 +75,7 @@
   <header id="header"></header>
   <div class="login">
     <form class="login-form">
-      <h5>Log In</h5>
+      <h2>Log In</h2>
       <div class="error" style="display:none"></div>
       <input type="email" id="login-username" placeholder="Email" />
       <input type="password" id="login-password" placeholder="Password" />
@@ -75,7 +83,7 @@
     </form>
 
     <form class="signup-form">
-      <h5>Sign Up</h5>
+      <h2>Sign Up</h2>
       <div class="error" style="display:none"></div>
       <input type="email" id="signup-username" placeholder="Email" />
       <input type="password" id="signup-password" placeholder="Create a Password" />
